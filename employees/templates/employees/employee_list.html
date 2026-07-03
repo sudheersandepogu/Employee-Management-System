@@ -1,0 +1,77 @@
+{% extends "employees/base.html" %}
+{% block page_title %}Employee Directory{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="mb-0">Employee Directory</h3>
+    <div class="small text-muted">Search and manage employee records</div>
+  </div>
+  <a href="{% url 'employees:employee_add' %}" class="btn btn-primary btn-sm">+ Add Employee</a>
+</div>
+
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="card p-0">
+      <form method="get" class="d-flex gap-2 p-3" action="{% url 'employees:employee_list' %}">
+        <input name="q" value="{{ query }}" class="form-control" placeholder="Search by name, code, department, designation..." />
+        <button class="btn btn-outline-secondary">Search</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Employee</th>
+          <th>Department</th>
+          <th>Designation</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for employee in employees %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-sm" style="background:{{ employee.avatar_color }}">{{ employee.avatar_initials }}</div>
+                <div>
+                  <div class="fw-bold">{{ employee.full_name }}</div>
+                  <div class="small text-muted">{{ employee.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge-dept">{{ employee.department.name|default:"—" }}</span></td>
+            <td>{{ employee.designation.name|default:"—" }}</td>
+            <td>{{ employee.email }}</td>
+            <td>
+              {% if employee.status == 'active' %}
+                <span class="badge bg-success">Active</span>
+              {% elif employee.status == 'on_leave' %}
+                <span class="badge bg-warning">On Leave</span>
+              {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'employees:employee_edit' employee.pk %}" class="btn btn-xs btn-outline-secondary">Edit</a>
+              <a href="{% url 'employees:employee_delete' employee.pk %}" class="btn btn-xs btn-outline-danger">Delete</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4">No employees matched your search. <a href="{% url 'employees:employee_add' %}">Add one</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer text-muted small">Showing {{ employees|length }} of {{ total_count|default:employees|length }} results</div>
+</div>
+
+{% endblock %}

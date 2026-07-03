@@ -1,0 +1,195 @@
+{% extends "employees/base.html" %}
+{% block page_title %}Welcome back, {{ user.first_name|default:"Admin" }} 👋{% endblock %}
+
+{% block content %}
+<div class="dashboard-header mb-4">
+  <p class="text-muted mb-1">Manage your organization and employees efficiently.</p>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#e3f2fd">👥</div>
+      <div class="stat-content">
+        <div class="stat-label">Total Employees</div>
+        <div class="stat-value">{{ total_count }}</div>
+        <div class="stat-meta text-success">↑ 12% from last month</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f3e5f5">🏢</div>
+      <div class="stat-content">
+        <div class="stat-label">Departments</div>
+        <div class="stat-value">{{ dept_count }}</div>
+        <div class="stat-meta text-success">↑ 2 new departments</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#e8f5e9">✅</div>
+      <div class="stat-content">
+        <div class="stat-label">Present Today</div>
+        <div class="stat-value">{{ active_count }}</div>
+        <div class="stat-meta text-success">↑ 75% attendance</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fff3e0">⏳</div>
+      <div class="stat-content">
+        <div class="stat-label">On Leave</div>
+        <div class="stat-value">{{ leave_count }}</div>
+        <div class="stat-meta text-danger">↓ 3% from yesterday</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h6 class="mb-0">Employee Overview</h6>
+        <a href="{% url 'employees:employee_list' %}" class="btn btn-sm btn-primary">+ Add Employee</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Designation</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for employee in employees %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="avatar-sm" style="background:{{ employee.avatar_color }}">{{ employee.avatar_initials }}</div>
+                    <div>
+                      <div class="fw-bold">{{ employee.full_name }}</div>
+                      <div class="small text-muted">{{ employee.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge badge-dept">{{ employee.department.name|default:"—" }}</span></td>
+                <td>{{ employee.designation.name|default:"—" }}</td>
+                <td>{{ employee.email }}</td>
+                <td>
+                  {% if employee.status == 'active' %}
+                    <span class="badge bg-success">Active</span>
+                  {% elif employee.status == 'on_leave' %}
+                    <span class="badge bg-warning">On Leave</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{% url 'employees:employee_edit' employee.pk %}" class="btn btn-xs btn-outline-secondary">Edit</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7" class="text-center text-muted py-3">No employees yet. <a href="{% url 'employees:employee_add' %}">Add one now</a></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer text-muted small">Showing 1 to {{ employees|length }} of {{ total_count }} results</div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Department Distribution</h6>
+      </div>
+      <div class="card-body">
+        <div style="position:relative; height:200px">
+          <canvas id="departmentChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">Recent Activities</h6>
+      </div>
+      <div class="card-body">
+        <div class="activity-item">
+          <div class="activity-icon">✅</div>
+          <div class="activity-content">
+            <div class="activity-title">New employee added</div>
+            <div class="activity-time">2 hours ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">System Overview</h6>
+      </div>
+      <div class="card-body">
+        <div class="system-status">
+          <div class="status-row">
+            <span>System Status</span>
+            <span class="badge bg-success">All systems running</span>
+          </div>
+          <div class="status-row">
+            <span>Database</span>
+            <span class="badge bg-success">Connected</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ctx = document.getElementById('departmentChart');
+  if (ctx) {
+    const deptLabels = [{% for dept in dept_stats %}'{{ dept.name }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const deptData = [{% for dept in dept_stats %}{{ dept.emp_count }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const colors = ['#0b6ef6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: deptLabels,
+        datasets: [{
+          data: deptData,
+          backgroundColor: colors.slice(0, deptLabels.length),
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}
